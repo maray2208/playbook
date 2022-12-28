@@ -1,0 +1,101 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install nginx webserver
+      apt:
+        name: nginx
+        update_cache: yes
+        state: latest
+
+    - name: Start nginx and boot
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Install PHP-FPM
+      apt:
+        name: php-fpm
+        update_cache: yes
+        state: latest
+
+    - name: Start nginx and boot
+      service:
+        name: php8.1-fpm
+        state: started
+        enabled: yes
+
+
+
+    - name: Create dir
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: 0755
+      loop:
+        - '/home/project.local'
+        - '/data/nginx/cache'
+
+
+    - name: Copy /etc/php/8.1/fpm/pool.d/www.conf
+      copy:
+        src: ./www.conf
+        dest: /etc/php/8.1/fpm/pool.d/
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Copy /home/project.local/index.php
+      copy:
+        src: ./index.php
+        dest: /home/project.local
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Copy /etc/nginx/nginx.conf
+      copy:
+        src: ./nginx.conf
+        dest: /etc/nginx
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Copy /etc/nginx/sites-available/
+      copy:
+        src: ./project.local
+        dest: /etc/nginx/sites-available/
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+
+    - name: Delete default
+      file:
+        path: /etc/nginx/sites-available/default
+        state: absent
+
+    - name: Del link default
+      shell: unlink /etc/nginx/sites-enabled/default
+
+    - name: create link project.local
+      shell: ln -s /etc/nginx/sites-available/project.local /etc/nginx/sites-enabled/
+
+
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Restart  php-fpm
+      service:
+        name: php8.1-fpm
+        state: restarted
