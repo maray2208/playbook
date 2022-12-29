@@ -1,5 +1,45 @@
 ---
-- hosts: all
+
+- hosts: balancer_srv
+  become: yes
+  tasks:
+    - name: Install nginx balancer
+      apt:
+        name: nginx
+        update_cache: yes
+        state: latest
+
+    - name: Start nginx_balancer and boot
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Copy /etc/nginx/nginx.conf
+      copy:
+        src: ./balancer/nginx.conf
+        dest: /etc/nginx
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Copy /etc/nginx/sites-available/default
+      copy:
+        src: ./balancer/default
+        dest: /etc/nginx/sites-available/
+        remote_src: no
+        mode: 0644
+        owner: root
+        group: root
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+
+- hosts: code_srv_1, code_srv_2
   become: yes
   tasks:
     - name: Install nginx webserver
